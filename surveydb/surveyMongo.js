@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
-const dburl = require('./dburl.js');
+//const dburl = require('./dburl.js');
 
+const db = process.env.MONGODB_URL;
 // Export this to open a connection before listening.
 const mongoConnection = () => {
-  return mongoose.connect(dburl.atlasDB,
+  return mongoose.connect(db,
     {
       useNewUrlParser: true,
       useUnifiedTopology: true
