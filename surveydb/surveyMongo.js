@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 //const dburl = require('./dburl.js');
 
-const db = process.env.MONGODB_URL;
+const mongodbUrl = process.env.MONGODB_URL;
 // Export this to open a connection before listening.
 const mongoConnection = () => {
-  return mongoose.connect(db,
+  return mongoose.connect(mongodbUrl,
     {
       useNewUrlParser: true,
       useUnifiedTopology: true
