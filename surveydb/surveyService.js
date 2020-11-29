@@ -1,4 +1,4 @@
-const surveyMongo = require('./surveyMongo');
+const surveyMongo = require('./surveyMongo.js');
 
 
 exports.getAllSurveys = () => {
@@ -137,7 +137,7 @@ exports.saveSurvey = survey => {
 /**
  * Delete all surveys of a particular type along 
  * with all the assigned participants.
- * @param {String} surveyName name/type to delete
+ * @param {String} surveyName name/type to delete 
  */
 exports.deleteSurveysByName = surveyName => {
   return new Promise((resolve, reject) => {
