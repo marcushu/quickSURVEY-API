@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
-//const dburl = require('./dburl.js');
 
 const mongodbUrl = process.env.MONGODB_URL;
+//const mongodbUrl = "mongodb://172.17.0.2/surveys";  //TODO: local dev db
+
 // Export this to open a connection before listening.
 const mongoConnection = () => {
   return mongoose.connect(mongodbUrl,
