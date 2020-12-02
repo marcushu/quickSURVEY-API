@@ -54,7 +54,7 @@ exports.getBlankSurveyByName = surveyName => {
 
         } catch (error) {
           reject(error)
-        }        
+        }
       });
   });
 }
@@ -68,16 +68,22 @@ exports.getBlankSurveyByName = surveyName => {
  */
 exports.getBlankSurveyFor = participantId => {
   return new Promise((resolve, reject) => {
-    surveyMongo.Participant.findOne({ _id: participantId }, (err, result) => {
-      if
-        (err) reject(err)
+    surveyMongo.Participant.findById(participantId, (err, result) => {
+      if (err) {
+        reject(err);
+      }
       else {
-        this.getBlankSurveyByName(result.surveyName)
-          .then(blankSurvey => {
-            blankSurvey.owner = result.participant;
-            resolve(blankSurvey)
-          })
-          .catch(err => reject(err));
+        if (!result) {
+          reject(new Error("Non existant ID"));
+        }
+        else {
+          this.getBlankSurveyByName(result.surveyName)
+            .then(blankSurvey => {
+              blankSurvey.owner = result.participant;
+              resolve(blankSurvey)
+            })
+            .catch(err => reject(err));
+        }
       }
     });
   });
@@ -145,11 +151,11 @@ exports.deleteSurveysByName = surveyName => {
       if (err) reject(err);
 
       // delete survey takers
-      surveyMongo.Participant.deleteMany( { surveyName: surveyName }, err => {
-        if(err) reject(err);
+      surveyMongo.Participant.deleteMany({ surveyName: surveyName }, err => {
+        if (err) reject(err);
 
         resolve({ surveyName: surveyName });
-      });      
+      });
     });
   })
 }
