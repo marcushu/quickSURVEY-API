@@ -1,14 +1,12 @@
 const surveyMongo = require('./surveyMongo.js');
 
 
-exports.getAllSurveys = () => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Survey.find((err, result) => {
-      if (err)
-        reject(err);
+exports.getAllSurveys = async () => {
+  return surveyMongo.Survey.find((err, result) => {
+    if (err)
+      return err;
 
-      resolve(result);
-    });
+    return result;
   });
 }
 
@@ -17,46 +15,42 @@ exports.getAllSurveys = () => {
  * kind.  Any blank survey is not returned.
  * @param {String} surveyName the survey type
  */
-exports.getBySurveyName = surveyName => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Survey
-      .find({ questionaireTypeName: decodeURI(surveyName), owner: { $ne: "" } }, (err, result) => {
-        if (err)
-          reject(err);
+exports.getBySurveyName = async surveyName => {
+  return surveyMongo.Survey
+    .find({ questionaireTypeName: decodeURI(surveyName), owner: { $ne: "" } }, (err, result) => {
+      if (err)
+        return err;
 
-        resolve(result);
-      });
-  });
+      return result;
+    });
 }
 
 /**
  * Returns a blank copy of a survey named by the parameter.
  * @param {String} surveyName the type of survey
  */
-exports.getBlankSurveyByName = surveyName => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Survey.findOne(
-      {
-        questionaireTypeName: surveyName,
-        owner: ""
-      }, (err, result) => {
-        if (err)
-          reject(err);
+exports.getBlankSurveyByName = async surveyName => {
+  return surveyMongo.Survey.findOne(
+    {
+      questionaireTypeName: surveyName,
+      owner: ""
+    }, (err, result) => {
+      if (err)
+        return err;
 
-        try {
-          // make and return a copy
-          let newClone = new surveyMongo.Survey({
-            questionaireTypeName: result.questionaireTypeName,
-            questions: result.questions
-          });
+      try {
+        // make and return a copy
+        let newClone = new surveyMongo.Survey({
+          questionaireTypeName: result.questionaireTypeName,
+          questions: result.questions
+        });
 
-          resolve(newClone);
+        return newClone;
 
-        } catch (error) {
-          reject(error)
-        }
-      });
-  });
+      } catch (error) {
+        return error;
+      }
+    });
 }
 
 /**
@@ -93,22 +87,20 @@ exports.getBlankSurveyFor = participantId => {
  * Update a document. Return the original document.
  * @param {Survey} updatedSurvey a survey to update
  */
-exports.updateBySurveyName = updatedSurvey => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Survey.findOneAndUpdate(
-      {
-        questionaireTypeName: updatedSurvey.questionaireTypeName
-      },
-      {
-        questions: updatedSurvey.questions,
-        owner: updatedSurvey.owner
-      },
-      { useFindAndModify: false },
-      (err, result) => {
-        if (err) reject(err);
-        resolve(result)
-      });
-  });
+exports.updateBySurveyName = async updatedSurvey => {
+  return surveyMongo.Survey.findOneAndUpdate(
+    {
+      questionaireTypeName: updatedSurvey.questionaireTypeName
+    },
+    {
+      questions: updatedSurvey.questions,
+      owner: updatedSurvey.owner
+    },
+    { useFindAndModify: false },
+    (err, result) => {
+      if (err) return err;
+      return result
+    });
 }
 
 /**
@@ -116,27 +108,23 @@ exports.updateBySurveyName = updatedSurvey => {
  * @param {String} _owner the participant
  * @param {String} survey the name of the completed survey
  */
-exports.getSurveyByOwner = (_owner, survey) => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Survey.find({ owner: _owner, questionaireTypeName: survey }, (err, result) => {
-      if (err)
-        reject(err);
+exports.getSurveyByOwner = async (_owner, survey) => {
+  return surveyMongo.Survey.find({ owner: _owner, questionaireTypeName: survey }, (err, result) => {
+    if (err)
+      return err;
 
-      resolve(result);
-    });
+    return result;
   });
 }
 
-exports.saveSurvey = survey => {
+exports.saveSurvey = async survey => {
   let newMongoSurvey = new surveyMongo.Survey(survey);
 
-  return new Promise((resolve, reject) => {
-    newMongoSurvey.save(function (err, newMongoSurvey) {
-      if (err)
-        reject(err);
+  return newMongoSurvey.save(function (err, newMongoSurvey) {
+    if (err)
+      return err;
 
-      resolve(newMongoSurvey);
-    });
+    return newMongoSurvey;
   });
 }
 
@@ -145,19 +133,17 @@ exports.saveSurvey = survey => {
  * with all the assigned participants.
  * @param {String} surveyName name/type to delete 
  */
-exports.deleteSurveysByName = surveyName => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Survey.deleteMany({ questionaireTypeName: surveyName }, err => {
-      if (err) reject(err);
+exports.deleteSurveysByName = async surveyName => {
+  return surveyMongo.Survey.deleteMany({ questionaireTypeName: surveyName }, err => {
+    if (err) return err;
 
-      // delete survey takers
-      surveyMongo.Participant.deleteMany({ surveyName: surveyName }, err => {
-        if (err) reject(err);
+    // delete survey takers
+    surveyMongo.Participant.deleteMany({ surveyName: surveyName }, err => {
+      if (err) return err;
 
-        resolve({ surveyName: surveyName });
-      });
+      return { surveyName: surveyName };
     });
-  })
+  });
 }
 
 /**
@@ -165,47 +151,44 @@ exports.deleteSurveysByName = surveyName => {
  * @param {String} surveyName Survey Name
  * @param {[String]} participants An array of names
  */
-exports.addSurveyParticipants = (surveyName, participants) => {
+exports.addSurveyParticipants = async (surveyName, participants) => {
   let toInsert = [];
 
   const alreadyListed = (_newParticipant, _existingParticipants) => {
     return _existingParticipants.some(({ participant }) => { return participant === _newParticipant });
   }
 
-  return new Promise((resolve, reject) => {
-    // get existing participant list to avoid duplicates.
-    surveyMongo.Participant.find((err, existingParticipants) => {
-      if (err) reject(err)
 
-      participants.forEach(newParticipant => {
-        if (!alreadyListed(newParticipant, existingParticipants)) {
-          let mongoParticipan = new surveyMongo.Participant({
-            participant: newParticipant,
-            surveyName: surveyName
-          });
+  // get existing participant list to avoid duplicates.
+  return surveyMongo.Participant.find((err, existingParticipants) => {
+    if (err) return err
 
-          toInsert.push(mongoParticipan);
-        }
-      });
+    participants.forEach(newParticipant => {
+      if (!alreadyListed(newParticipant, existingParticipants)) {
+        let mongoParticipan = new surveyMongo.Participant({
+          participant: newParticipant,
+          surveyName: surveyName
+        });
 
-      surveyMongo.Participant.insertMany(toInsert)
-        .then(() => resolve(toInsert))
-        .catch(err => reject(err));
+        toInsert.push(mongoParticipan);
+      }
     });
-  })
+
+    surveyMongo.Participant.insertMany(toInsert)
+      .then(() => toInsert)
+      .catch(err => err);
+  });
 }
 
 /**
  * Return everyone signed up to fill out this survey.
  * @param {String} surveyName 
  */
-exports.getParticipantsBySurvey = surveyName => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Participant.find({ surveyName: surveyName }, (err, result) => {
-      if (err)
-        reject(err);
+exports.getParticipantsBySurvey = async surveyName => {
+  return surveyMongo.Participant.find({ surveyName: surveyName }, (err, result) => {
+    if (err)
+      return err;
 
-      resolve(result);
-    })
-  });
+    return result;
+  })
 }
