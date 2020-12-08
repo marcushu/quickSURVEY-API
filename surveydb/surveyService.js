@@ -2,12 +2,12 @@ const surveyMongo = require('./surveyMongo.js');
 
 
 exports.getAllSurveys = async () => {
-  return surveyMongo.Survey.find((err, result) => {
-    if (err)
-      return err;
-
+  try {
+    const result = await surveyMongo.Survey.find();
     return result;
-  });
+  } catch (err) {
+    return await Promise.reject(new Error(err));
+  }
 }
 
 /**
@@ -16,13 +16,13 @@ exports.getAllSurveys = async () => {
  * @param {String} surveyName the survey type
  */
 exports.getBySurveyName = async surveyName => {
-  return surveyMongo.Survey
-    .find({ questionaireTypeName: decodeURI(surveyName), owner: { $ne: "" } }, (err, result) => {
-      if (err)
-        return err;
-
-      return result;
-    });
+  try {
+    const result = await surveyMongo.Survey
+      .find({ questionaireTypeName: decodeURI(surveyName), owner: { $ne: "" } });
+    return result;
+  } catch (err) {
+    return await Promise.reject(new Error(err));
+  }
 }
 
 /**
@@ -30,27 +30,27 @@ exports.getBySurveyName = async surveyName => {
  * @param {String} surveyName the type of survey
  */
 exports.getBlankSurveyByName = async surveyName => {
-  return surveyMongo.Survey.findOne(
-    {
-      questionaireTypeName: surveyName,
-      owner: ""
-    }, (err, result) => {
-      if (err)
-        return err;
+  try {
+    const result = await surveyMongo.Survey.findOne(
+      {
+        questionaireTypeName: surveyName,
+        owner: ""
+      });
+    try {
+      // make and return a copy
+      let newClone = new surveyMongo.Survey({
+        questionaireTypeName: result.questionaireTypeName,
+        questions: result.questions
+      });
 
-      try {
-        // make and return a copy
-        let newClone = new surveyMongo.Survey({
-          questionaireTypeName: result.questionaireTypeName,
-          questions: result.questions
-        });
+      return newClone;
 
-        return newClone;
-
-      } catch (error) {
-        return error;
-      }
-    });
+    } catch (error) {
+      return Promise.reject(new Error(err));
+    }
+  } catch (err) {
+    return await Promise.reject(new Error(err));
+  }
 }
 
 /**
@@ -88,19 +88,22 @@ exports.getBlankSurveyFor = participantId => {
  * @param {Survey} updatedSurvey a survey to update
  */
 exports.updateBySurveyName = async updatedSurvey => {
-  return surveyMongo.Survey.findOneAndUpdate(
-    {
-      questionaireTypeName: updatedSurvey.questionaireTypeName
-    },
-    {
-      questions: updatedSurvey.questions,
-      owner: updatedSurvey.owner
-    },
-    { useFindAndModify: false },
-    (err, result) => {
-      if (err) return err;
-      return result
-    });
+  try {
+    const result = await surveyMongo.Survey.findOneAndUpdate(
+      {
+        questionaireTypeName: updatedSurvey.questionaireTypeName
+      },
+      {
+        questions: updatedSurvey.questions,
+        owner: updatedSurvey.owner
+      },
+      {
+        useFindAndModify: false
+      });
+    return result;
+  } catch (err) {
+    return await Promise.reject(new Error(err));
+  }
 }
 
 /**
@@ -109,23 +112,27 @@ exports.updateBySurveyName = async updatedSurvey => {
  * @param {String} survey the name of the completed survey
  */
 exports.getSurveyByOwner = async (_owner, survey) => {
-  return surveyMongo.Survey.find({ owner: _owner, questionaireTypeName: survey }, (err, result) => {
-    if (err)
-      return err;
-
+  try {
+    const result = await surveyMongo.Survey.find({ owner: _owner, questionaireTypeName: survey });
     return result;
-  });
+  } catch (err) {
+    return await Promise.reject(new Error(err));
+  }
 }
 
+/**
+ * Save
+ * @param {String} survey 
+ */
 exports.saveSurvey = async survey => {
   let newMongoSurvey = new surveyMongo.Survey(survey);
 
-  return newMongoSurvey.save(function (err, newMongoSurvey) {
-    if (err)
-      return err;
-
-    return newMongoSurvey;
-  });
+  try {
+    const result = await newMongoSurvey.save();
+    return result;
+  } catch (err) {
+    return await Promise.reject(new Error(err));
+  }
 }
 
 /**
@@ -134,16 +141,17 @@ exports.saveSurvey = async survey => {
  * @param {String} surveyName name/type to delete 
  */
 exports.deleteSurveysByName = async surveyName => {
-  return surveyMongo.Survey.deleteMany({ questionaireTypeName: surveyName }, err => {
-    if (err) return err;
-
-    // delete survey takers
-    surveyMongo.Participant.deleteMany({ surveyName: surveyName }, err => {
-      if (err) return err;
-
-      return { surveyName: surveyName };
-    });
-  });
+  try {
+    await surveyMongo.Survey.deleteMany({ questionaireTypeName: surveyName });
+    surveyMongo.Participant.deleteMany({ surveyName: surveyName })
+      .catch(err => {
+        console.error(err);
+        return { surveyName: sureyName };
+      });
+  } catch (err_1) {
+    console.error(err_1);
+    return { surveyName: surveyName };
+  }
 }
 
 /**
@@ -158,11 +166,9 @@ exports.addSurveyParticipants = async (surveyName, participants) => {
     return _existingParticipants.some(({ participant }) => { return participant === _newParticipant });
   }
 
-
   // get existing participant list to avoid duplicates.
-  return surveyMongo.Participant.find((err, existingParticipants) => {
-    if (err) return err
-
+  try {
+    const existingParticipants = await surveyMongo.Participant.find();
     participants.forEach(newParticipant => {
       if (!alreadyListed(newParticipant, existingParticipants)) {
         let mongoParticipan = new surveyMongo.Participant({
@@ -176,8 +182,10 @@ exports.addSurveyParticipants = async (surveyName, participants) => {
 
     surveyMongo.Participant.insertMany(toInsert)
       .then(() => toInsert)
-      .catch(err => err);
-  });
+      .catch(err => Promise.reject(new Error(err)));
+  } catch (err_1) {
+    return await Promise.reject(new Error(err_1));
+  }
 }
 
 /**
@@ -185,10 +193,10 @@ exports.addSurveyParticipants = async (surveyName, participants) => {
  * @param {String} surveyName 
  */
 exports.getParticipantsBySurvey = async surveyName => {
-  return surveyMongo.Participant.find({ surveyName: surveyName }, (err, result) => {
-    if (err)
-      return err;
-
+  try {
+    const result = await surveyMongo.Participant.find({ surveyName: surveyName });
     return result;
-  })
+  } catch (err) {
+    return await Promise.reject(new Error(err));
+  }
 }
