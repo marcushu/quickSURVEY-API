@@ -6,7 +6,7 @@ exports.getAllSurveys = async () => {
     const result = await surveyMongo.Survey.find();
     return result;
   } catch (err) {
-    return await Promise.reject(new Error(err));
+    throw new Error(err);
   }
 }
 
@@ -21,7 +21,7 @@ exports.getBySurveyName = async surveyName => {
       .find({ questionaireTypeName: decodeURI(surveyName), owner: { $ne: "" } });
     return result;
   } catch (err) {
-    return await Promise.reject(new Error(err));
+    throw new Error(err);
   }
 }
 
@@ -46,10 +46,10 @@ exports.getBlankSurveyByName = async surveyName => {
       return newClone;
 
     } catch (error) {
-      return Promise.reject(new Error(err));
+      return Promise.reject(new Error(error));
     }
   } catch (err) {
-    return await Promise.reject(new Error(err));
+    throw new Error(err);
   }
 }
 
@@ -60,28 +60,30 @@ exports.getBlankSurveyByName = async surveyName => {
  * retrieve the survey.
  * @param {String} participantId id#, associates a user with a survey
  */
-exports.getBlankSurveyFor = participantId => {
-  return new Promise((resolve, reject) => {
-    surveyMongo.Participant.findById(participantId, (err, result) => {
-      if (err) {
-        reject(err);
-      }
-      else {
-        if (!result) {
-          reject(new Error("Non existant ID"));
-        }
-        else {
-          this.getBlankSurveyByName(result.surveyName)
-            .then(blankSurvey => {
-              blankSurvey.owner = result.participant;
-              resolve(blankSurvey)
-            })
-            .catch(err => reject(err));
-        }
-      }
-    });
-  });
+exports.getBlankSurveyFor = async participantId => {
+  try {
+    let _participant = await surveyMongo.Participant.findById(participantId);
+
+    let surveyExists = await surveyMongo.Survey.exists(
+      {
+        owner: _participant.participant,
+        questionaireTypeName: _participant.surveyName
+      });
+      
+    // no multiples  
+    if (surveyExists)
+      return { exists: true }
+
+    let newBlankSurvey = await this.getBlankSurveyByName(_participant.surveyName);
+    newBlankSurvey.owner = _participant.participant;
+
+    return newBlankSurvey;
+
+  } catch (error) {
+    throw new Error(error);
+  }
 }
+
 
 /**
  * Update a document. Return the original document.
@@ -102,7 +104,7 @@ exports.updateBySurveyName = async updatedSurvey => {
       });
     return result;
   } catch (err) {
-    return await Promise.reject(new Error(err));
+    throw new Error(err);
   }
 }
 
@@ -116,7 +118,7 @@ exports.getSurveyByOwner = async (_owner, survey) => {
     const result = await surveyMongo.Survey.find({ owner: _owner, questionaireTypeName: survey });
     return result;
   } catch (err) {
-    return await Promise.reject(new Error(err));
+    throw new Error(err);
   }
 }
 
@@ -131,7 +133,7 @@ exports.saveSurvey = async survey => {
     const result = await newMongoSurvey.save();
     return result;
   } catch (err) {
-    return await Promise.reject(new Error(err));
+    throw new Error(err);
   }
 }
 
@@ -180,11 +182,11 @@ exports.addSurveyParticipants = async (surveyName, participants) => {
       }
     });
 
-    surveyMongo.Participant.insertMany(toInsert)
-      .then(() => toInsert)
-      .catch(err => Promise.reject(new Error(err)));
-  } catch (err_1) {
-    return await Promise.reject(new Error(err_1));
+    await surveyMongo.Participant.insertMany(toInsert);
+
+    return toInsert;
+  } catch (err) {
+    throw new Error(err);
   }
 }
 
@@ -197,6 +199,6 @@ exports.getParticipantsBySurvey = async surveyName => {
     const result = await surveyMongo.Participant.find({ surveyName: surveyName });
     return result;
   } catch (err) {
-    return await Promise.reject(new Error(err));
+    throw new Error(err);
   }
 }
